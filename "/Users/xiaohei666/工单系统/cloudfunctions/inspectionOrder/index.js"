@@ -1,0 +1,70 @@
+const cloudbase = require('@cloudbase/node-sdk');
+
+exports.main = async (event, context) => {
+  const app = cloudbase.init({});
+  const db = app.database();
+  
+  // 调试：检查 mysql 对象结构
+  const mysql = db.mysql;
+  const debugInfo = {
+    mysqlType: typeof mysql,
+    mysqlKeys: mysql ? Object.keys(mysql) : [],
+    mysqlValues: mysql ? Object.values(mysql).map(v => typeof v) : [],
+  };
+  
+  // 测试是否可以直接调用 mysql
+  try {
+    if (typeof mysql === 'function') {
+      debugInfo.directCall = 'mysql is a function';
+    }
+    if (mysql && typeof mysql.query === 'function') {
+      debugInfo.queryMethod = 'exists';
+    }
+    if (mysql && typeof mysql.execute === 'function') {
+      debugInfo.executeMethod = 'exists';
+    }
+    if (mysql && typeof mysql.run === 'function') {
+      debugInfo.runMethod = 'exists';
+    }
+    if (mysql && typeof mysql.all === 'function') {
+      debugInfo.allMethod = 'exists';
+    }
+  } catch (e) {
+    debugInfo.error = e.message;
+  }
+  
+  const { action, data } = event;
+  
+  try {
+    // 尝试使用正确的方法
+    let result;
+    const sql = `SELECT * FROM users WHERE status = 'active' ORDER BY created_at ASC`;
+    
+    if (mysql && typeof mysql.query === 'function') {
+      const res = await mysql.query(sql, []);
+      result = res.data || res;
+    } else if (mysql && typeof mysql.execute === 'function') {
+      result = await mysql.execute(sql, []);
+    } else if (mysql && typeof mysql.run === 'function') {
+      result = await mysql.run(sql, []);
+    } else if (mysql && typeof mysql.all === 'function') {
+      result = await mysql.all(sql, []);
+    } else if (typeof mysql === 'function') {
+      result = await mysql(sql, []);
+    } else {
+      throw new Error('No suitable MySQL method found. Debug: ' + JSON.stringify(debugInfo));
+    }
+    
+    return { 
+      success: true, 
+      data: result || [],
+      debug: debugInfo 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error.message,
+      debug: debugInfo
+    };
+  }
+};

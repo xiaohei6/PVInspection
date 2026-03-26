@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分布式光伏电站巡检维护报告模板（空白HTML）</title>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f2f4f7;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: #222;
+      line-height: 1.5;
+    }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 10px auto;
+      background: #fff;
+      padding: 14mm 12mm;
+      page-break-after: always;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 260mm;
+      text-align: center;
+    }
+    .company { font-size: 20px; font-weight: 600; margin-bottom: 18mm; }
+    .title { font-size: 34px; font-weight: 700; letter-spacing: 1px; margin-bottom: 18mm; }
+    .meta-list { width: 70%; font-size: 18px; }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin: 10mm 0;
+      border-bottom: 1px solid #999;
+      padding-bottom: 4px;
+    }
+    .meta-label { width: 110px; text-align: justify; text-align-last: justify; }
+    .meta-fill { flex: 1; min-height: 24px; }
+
+    h1.section-title {
+      font-size: 24px;
+      margin: 0 0 12px;
+      font-weight: 700;
+    }
+    h2.sub-title {
+      font-size: 18px;
+      margin: 18px 0 10px;
+      font-weight: 700;
+    }
+    .block-label {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 12px 0 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #2d2d2d;
+      padding: 8px 10px;
+      vertical-align: middle;
+      word-break: break-word;
+      height: 38px;
+    }
+    th {
+      background: #5b9bd5;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+    }
+    .info-table td { height: 36px; }
+    .center { text-align: center; }
+    .small { font-size: 13px; }
+    .placeholder { color: transparent; }
+    .img-title { font-size: 14px; margin: 12px 0 6px; }
+    .img-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .img-grid.one { grid-template-columns: 1fr; }
+    .img-grid.three { grid-template-columns: repeat(3, 1fr); }
+    .img-box {
+      height: 110px;
+      border: 1.5px dashed #b9c1cc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a0a8b3;
+      font-size: 13px;
+      background: #fafbfd;
+    }
+    .spacer-lg { height: 20px; }
+    .note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { margin: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="cover">
+      <div class="company">山东龙源农信通新能源开发有限公司</div>
+      <div class="title">分布式光伏电站巡检维护报告</div>
+      <div class="meta-list">
+        <div class="meta-item"><div class="meta-label">项目名称：</div><div class="meta-fill"></div></div>
+        <div class="meta-item"><div class="meta-label">巡检时间：</div><div class="meta-fill"></div></div>
+        <div class="meta-item"><div class="meta-label">巡检人：</div><div class="meta-fill"></div></div>
+        <div class="meta-item"><div class="meta-label">天气：</div><div class="meta-fill"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page">
+    <h1 class="section-title">一、电站基础信息</h1>
+    <table class="info-table">
+      <colgroup>
+        <col style="width: 8%"><col style="width: 28%"><col style="width: 64%">
+      </colgroup>
+      <tbody>
+        <tr><td class="center">1</td><td class="center">逆变器运行编号</td><td></td></tr>
+        <tr><td class="center">2</td><td class="center">农户姓名</td><td></td></tr>
+        <tr><td class="center">3</td><td class="center">装机地址</td><td></td></tr>
+        <tr><td class="center">4</td><td class="center">装机容量</td><td></td></tr>
+        <tr><td class="center">5</td><td class="center">组件块数</td><td></td></tr>
+        <tr><td class="center">6</td><td class="center">逆变器品牌型号</td><td></td></tr>
+        <tr><td class="center">7</td><td class="center">组件规格型号</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h1 class="section-title">二、巡检内容</h1>
+    <h2 class="sub-title">1、光伏组件</h2>
+    <table>
+      <colgroup>
+        <col style="width: 7%"><col style="width: 52%"><col style="width: 14%"><col style="width: 27%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">7</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">8</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">9</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">10</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">11</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <div class="img-title">组件航拍图</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+    <div class="img-title">电站整体照片</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+    <div class="img-title">组件间接地方式附照片（刺破垫片或短接黄绿线）</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+    <div class="img-title">组件洁净度是否正常异常整改前后</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+  </section>
+
+  <section class="page">
+    <h2 class="sub-title">2、支架</h2>
+    <table>
+      <colgroup>
+        <col style="width: 6%"><col style="width: 9%"><col style="width: 44%"><col style="width: 17%"><col style="width: 24%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>类别</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">7</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">8</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">9</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">10</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">11</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">12</td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="img-title">支架照片（背拉部位照片、预制墩、膨胀螺栓细节照片、支架螺栓）</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+    <div class="img-title">标识牌照片</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+  </section>
+
+  <section class="page">
+    <h2 class="sub-title">3、逆变器</h2>
+    <table>
+      <colgroup>
+        <col style="width: 7%"><col style="width: 46%"><col style="width: 22%"><col style="width: 25%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">7</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">8</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">9</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">10</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">11</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">12</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">13</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="img-title">逆变器运行正常的照片</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+    <div class="img-title">逆变器和配电箱的整体照片</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+    <div class="img-title">检测各支路电流的照片</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+  </section>
+
+  <section class="page">
+    <h2 class="sub-title">4、配电箱</h2>
+    <table>
+      <colgroup>
+        <col style="width: 7%"><col style="width: 50%"><col style="width: 18%"><col style="width: 25%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">7</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">8</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">9</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">10</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">11</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">12</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">13</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="img-title">配电箱内外部照片</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+  </section>
+
+  <section class="page">
+    <h2 class="sub-title">5、接地与防雷系统</h2>
+    <table>
+      <colgroup>
+        <col style="width: 7%"><col style="width: 50%"><col style="width: 18%"><col style="width: 25%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="img-title">引下线与垂直接地体衔接近照</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+    <div class="img-title">支架与引下线衔接近照</div>
+    <div class="img-grid one"><div class="img-box">图片占位</div></div>
+  </section>
+
+  <section class="page">
+    <h2 class="sub-title">6、采集装置及电缆</h2>
+    <table>
+      <colgroup>
+        <col style="width: 7%"><col style="width: 9%"><col style="width: 47%"><col style="width: 14%"><col style="width: 23%">
+      </colgroup>
+      <thead>
+        <tr><th>序号</th><th>类别</th><th>巡检内容</th><th>巡检结果</th><th>异常情况说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">2</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">3</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">4</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">5</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">6</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">7</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">8</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="center">9</td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="img-title">采集器、物联卡正常运行照片</div>
+    <div class="img-grid"><div class="img-box">图片占位</div><div class="img-box">图片占位</div></div>
+    <div class="note">说明：已按原 PDF 的页面层级、表头结构、区块顺序和图片区位置整理为空白 HTML 模板，表格数据、子项内容与原图已移除。</div>
+  </section>
+</body>
+</html>
