@@ -195,25 +195,42 @@ export async function exportOrderToPDF(order: any): Promise<void> {
       logging: false,
       backgroundColor: '#ffffff',
       onclone: (clonedDoc) => {
-        // 遍历克隆文档中的所有元素，移除 oklch 颜色
+        // 移除所有可能引入 oklch 颜色的样式表（Tailwind v4 等）
+        const styleSheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+        styleSheets.forEach(sheet => sheet.remove());
+
+        // 遍历克隆文档中的所有元素，用 getComputedStyle 检测并覆盖 oklch 颜色
         const allElements = clonedDoc.getElementsByTagName('*');
+        const colorProps = [
+          'color', 'background-color', 'border-color',
+          'border-top-color', 'border-right-color',
+          'border-bottom-color', 'border-left-color',
+          'outline-color', 'text-decoration-color',
+          'fill', 'stroke'
+        ];
+
         for (let i = 0; i < allElements.length; i++) {
           const el = allElements[i] as HTMLElement;
-          const computedStyle = el.style;
+          const computed = window.getComputedStyle(el);
 
-          // 清理特定的可能包含 oklch 的属性
-          const colorProps = ['background-color', 'color', 'border-color', 'border-bottom-color', 'border-top-color', 'border-left-color', 'border-right-color'];
           colorProps.forEach(prop => {
-            const value = computedStyle.getPropertyValue(prop);
+            const value = computed.getPropertyValue(prop);
             if (value && value.includes('oklch')) {
-              computedStyle.setProperty(prop, 'rgb(255, 255, 255)');
+              // 根据属性类型设置合理的回退色
+              if (prop === 'color') {
+                el.style.setProperty(prop, 'rgb(51, 51, 51)', 'important');
+              } else if (prop === 'background-color') {
+                el.style.setProperty(prop, 'rgb(255, 255, 255)', 'important');
+              } else {
+                el.style.setProperty(prop, 'rgb(200, 200, 200)', 'important');
+              }
             }
           });
         }
 
-        // 处理 body 元素
+        // 确保 body 背景色
         if (clonedDoc.body) {
-          clonedDoc.body.style.backgroundColor = 'rgb(255, 255, 255)';
+          clonedDoc.body.style.setProperty('background-color', 'rgb(255, 255, 255)', 'important');
         }
       }
     });
