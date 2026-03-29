@@ -1,9 +1,18 @@
-# CloudBase React 模板
+# 工单系统
 
-基于 React、Vite 和腾讯云开发（CloudBase）的现代化 Web 应用模板，为开发者提供了快速构建全栈应用的能力。
+基于 React、Vite 和腾讯云开发（CloudBase）的巡检工单管理系统。
 
+## 部署信息
 
-[![Powered by CloudBase](https://7463-tcb-advanced-a656fc-1257967285.tcb.qcloud.la/mcp/powered-by-cloudbase-badge.svg)](https://github.com/TencentCloudBase/CloudBase-AI-ToolKit)  
+**静态网站托管地址**: https://test-9gxg636q2a60a065-1303913839.tcloudbaseapp.com/
+
+**环境 ID**: test-9gxg636q2a60a065
+
+**最后部署时间**: 2026-03-29
+
+**云存储目录**:
+- 巡检报告: `inspection-reports/日期/`
+- 导出文件: `exports/excel/日期/`  
 
 > 本项目基于 [**CloudBase AI ToolKit**](https://github.com/TencentCloudBase/CloudBase-AI-ToolKit) 开发，通过AI提示词和 MCP 协议+云开发，让开发更智能、更高效，支持AI生成全栈代码、一键部署至腾讯云开发（免服务器）、智能日志修复。
 
