@@ -14,17 +14,42 @@ function getEnvId(): string {
   }
 
   // 默认环境 ID（需要用户在 CloudBase 控制台配置）
-  return 'your-env-id';
+  return 'test-9gxg636q2a60a065';
 }
 
 // 初始化 CloudBase 应用
 let appInstance: ReturnType<typeof cloudbase.init> | null = null;
+let authInitialized = false;
+
+async function initAuth() {
+  if (authInitialized) return;
+  
+  const envId = getEnvId();
+  if (!envId || envId === 'your-env-id') {
+    console.warn('CloudBase 环境 ID 未配置');
+    return;
+  }
+  
+  appInstance = cloudbase.init({ env: envId });
+  
+  try {
+    const auth = appInstance.auth();
+    await auth.signInAnonymously();
+    authInitialized = true;
+    console.log('云存储匿名登录成功');
+  } catch (error) {
+    if ((error as any)?.message?.includes('102')) {
+      authInitialized = true;
+    } else {
+      console.warn('云存储匿名登录失败:', error);
+    }
+  }
+}
 
 export function getCloudBaseApp() {
   if (!appInstance) {
     const envId = getEnvId();
     if (!envId || envId === 'your-env-id') {
-      console.warn('CloudBase 环境 ID 未配置，文件将使用本地存储');
       return null;
     }
     appInstance = cloudbase.init({
@@ -39,6 +64,7 @@ export async function uploadToCloudStorage(
   cloudPath: string,
   fileOrBlob: File | Blob | string
 ): Promise<{ fileID: string; tempFileURL: string } | null> {
+  await initAuth();
   const app = getCloudBaseApp();
   if (!app) return null;
 
@@ -89,6 +115,7 @@ export async function uploadToCloudStorage(
 
 // 下载文件（触发浏览器下载）
 export async function downloadFromCloudStorage(fileID: string, fileName?: string): Promise<void> {
+  await initAuth();
   const app = getCloudBaseApp();
   if (!app) return;
 

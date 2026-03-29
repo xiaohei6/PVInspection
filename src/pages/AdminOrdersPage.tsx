@@ -41,7 +41,7 @@ export default function AdminOrdersPage() {
   }, [isAdmin]);
 
   const loadOrders = async () => {
-    setLoading(true);
+    // 不再 setLoading(true)，避免清空现有数据导致闪烁
     const data = await getInspectionOrders();
     setOrders(data);
     // 提取唯一地区列表

@@ -4,6 +4,7 @@
   "description": "工单管理云函数",
   "dependencies": {
     "@cloudbase/node-sdk": "^3.0.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "mysql2": "^3.20.0"
   }
 }

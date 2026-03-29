@@ -12,7 +12,32 @@
 
 **云存储目录**:
 - 巡检报告: `inspection-reports/日期/`
-- 导出文件: `exports/excel/日期/`  
+- 导出文件: `exports/excel/日期/`
+
+## 技术架构
+
+### 前端
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS + DaisyUI
+- React Router (Hash Mode)
+- @cloudbase/js-sdk
+
+### 后端
+- CloudBase 云函数 (Node.js)
+- CloudBase MySQL 数据库
+- CloudBase 云存储
+
+### 数据库表
+- `inspection_orders` - 巡检工单
+- `inspection_categories` - 巡检分类
+- `users` - 用户管理
+
+### 访问方式
+访问时需要传入 `envId` 参数：
+```
+https://test-9gxg636q2a60a065-1303913839.tcloudbaseapp.com/?envId=test-9gxg636q2a60a065
+```  
 
 > 本项目基于 [**CloudBase AI ToolKit**](https://github.com/TencentCloudBase/CloudBase-AI-ToolKit) 开发，通过AI提示词和 MCP 协议+云开发，让开发更智能、更高效，支持AI生成全栈代码、一键部署至腾讯云开发（免服务器）、智能日志修复。
 

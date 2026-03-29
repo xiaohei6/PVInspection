@@ -29,7 +29,7 @@ export default function WorkOrderListPage() {
   }, []);
 
   const loadOrders = async () => {
-    setLoading(true);
+    // 不再 setLoading(true)，避免清空现有数据
     const data = await getInspectionOrders();
     setOrders(data);
     // 提取唯一地区列表

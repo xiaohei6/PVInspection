@@ -222,6 +222,17 @@ export default function WorkOrderFormPage() {
   // 添加新小类到当前大类
   const handleAddItem = () => {
     if (!newItemName.trim()) return;
+
+    // 更新 inspectionCategories（用于显示）
+    const updatedCategories = { ...inspectionCategories };
+    if (!updatedCategories[activeCategory]) {
+      updatedCategories[activeCategory] = [];
+    }
+    updatedCategories[activeCategory] = [...updatedCategories[activeCategory], newItemName.trim()];
+    setInspectionCategories(updatedCategories);
+    localStorage.setItem('inspection_categories_obj', JSON.stringify(updatedCategories));
+
+    // 添加到 inspections（用于数据）
     const newItem: InspectionItem = {
       id: `insp_${Date.now()}`,
       category: activeCategory,
@@ -237,7 +248,16 @@ export default function WorkOrderFormPage() {
   // 删除当前大类的某个小类
   const handleDeleteItem = (_itemId: string, itemName: string) => {
     if (confirm(`确定要删除巡检项"${itemName}"吗？`)) {
+      // 从 inspections 中删除
       setInspections(prev => prev.filter(item => !(item.category === activeCategory && item.name === itemName)));
+
+      // 从 inspectionCategories 中删除
+      const updatedCategories = { ...inspectionCategories };
+      if (updatedCategories[activeCategory]) {
+        updatedCategories[activeCategory] = updatedCategories[activeCategory].filter(name => name !== itemName);
+        setInspectionCategories(updatedCategories);
+        localStorage.setItem('inspection_categories_obj', JSON.stringify(updatedCategories));
+      }
     }
   };
 
@@ -250,6 +270,19 @@ export default function WorkOrderFormPage() {
   // 保存编辑的小类名称
   const handleSaveEditItem = (oldName: string) => {
     if (!editingItemNewName.trim()) return;
+
+    // 更新 inspectionCategories（用于显示）
+    const updatedCategories = { ...inspectionCategories };
+    if (updatedCategories[activeCategory]) {
+      const index = updatedCategories[activeCategory].indexOf(oldName);
+      if (index !== -1) {
+        updatedCategories[activeCategory][index] = editingItemNewName.trim();
+        setInspectionCategories(updatedCategories);
+        localStorage.setItem('inspection_categories_obj', JSON.stringify(updatedCategories));
+      }
+    }
+
+    // 更新 inspections（用于数据）
     setInspections(prev => prev.map(item =>
       item.category === activeCategory && item.name === oldName
         ? { ...item, name: editingItemNewName.trim() }
