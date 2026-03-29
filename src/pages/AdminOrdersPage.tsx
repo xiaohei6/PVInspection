@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, FileText, Search, User, MapPin,
-  RefreshCw, X, Check, Trash2, Users, FileDown
+  RefreshCw, X, Check, Trash2, Users, FileDown,
+  Upload, Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
+import { uploadToCloudStorage } from '../utils/cloudStorage';
 import { statusConfig, priorityConfig, type InspectionOrder } from '../types/inspectionOrder';
-import { getInspectionOrders, assignOrder, deleteInspectionOrder } from '../utils/inspectionService';
+import { getInspectionOrders, assignOrder, deleteInspectionOrder, createInspectionOrder } from '../utils/inspectionService';
 import { exportOrderToPDF } from '../utils/pdfExport';
 
 export default function AdminOrdersPage() {
@@ -26,6 +29,8 @@ export default function AdminOrdersPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchAction, setBatchAction] = useState<'assign' | 'delete' | 'export'>('assign');
   const [showBatchToolbar, setShowBatchToolbar] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -159,12 +164,173 @@ export default function AdminOrdersPage() {
   // 批量导出PDF
   const handleBatchExportPDF = async () => {
     const selectedOrders = filteredOrders.filter(o => selectedIds.has(o.id));
+    let successCount = 0;
+    let failCount = 0;
     for (const order of selectedOrders) {
-      await exportOrderToPDF(order);
+      try {
+        const result = await exportOrderToPDF(order);
+        if (result.success) successCount++;
+        else failCount++;
+      } catch (e) {
+        failCount++;
+      }
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     setSelectedIds(new Set());
     setShowBatchToolbar(false);
+    alert(`批量导出完成：成功 ${successCount} 条${failCount > 0 ? `，失败 ${failCount} 条` : ''}`);
+  };
+
+  // 导出所有工单到Excel文件
+  const handleExportOrders = async () => {
+    const exportData = filteredOrders.map(order => {
+      // 将巡检项转换为字符串
+      const inspectionsStr = order.inspections?.map((item: any) =>
+        `${item.itemName}: ${item.result || '未填写'}`
+      ).join('; ') || '';
+      return {
+        '工单号': order.orderNo,
+        '项目名称': order.projectName,
+        '巡检日期': order.inspectionDate,
+        '巡检员': order.inspector,
+        '巡检员电话': order.inspectorPhone,
+        '天气': order.weather,
+        '逆变器编号': order.inverterNo,
+        '农户姓名': order.farmerName,
+        '农户电话': order.farmerPhone,
+        '地址': order.address,
+        '装机容量': order.installedCapacity,
+        '并网日期': order.gridConnectionDate,
+        '巡检项目': inspectionsStr,
+        '结论': order.conclusion,
+        '状态': statusConfig[order.status as keyof typeof statusConfig]?.label || order.status,
+        '优先级': priorityConfig[order.priority as keyof typeof priorityConfig]?.label || order.priority,
+        '指派给': order.assignedTo || '',
+        '创建人': order.createdBy,
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '工单列表');
+    // 设置列宽
+    ws['!cols'] = [
+      { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
+      { wch: 6 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 30 },
+      { wch: 12 }, { wch: 12 }, { wch: 40 }, { wch: 20 },
+      { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 8 }
+    ];
+
+    const fileName = `工单导出_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    // 尝试上传到云存储
+    const cloudPath = `exports/excel/${new Date().toISOString().slice(0, 10)}/${fileName}`;
+    const uploadResult = await uploadToCloudStorage(cloudPath, blob);
+
+    if (uploadResult?.tempFileURL) {
+      // 云存储上传成功，使用云端链接下载
+      const link = document.createElement('a');
+      link.href = uploadResult.tempFileURL;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert(`导出成功！文件已保存到云存储：${fileName}`);
+    } else {
+      // 云存储不可用，回退到本地下载
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // 导入工单
+  const handleImportOrders = async (file: File) => {
+    setImporting(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
+
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        alert('导入失败：文件格式错误或没有数据');
+        setImporting(false);
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+      for (const row of jsonData) {
+        try {
+          // 解析巡检项目（从字符串还原为对象数组）
+          const inspectionsStr = row['巡检项目'] || '';
+          const inspections: any[] = [];
+          if (inspectionsStr) {
+            const items = inspectionsStr.split(';');
+            for (const item of items) {
+              const match = item.match(/^(.+?):\s*(.+)$/);
+              if (match) {
+                inspections.push({
+                  id: `import_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                  itemName: match[1].trim(),
+                  result: match[2].trim(),
+                });
+              }
+            }
+          }
+
+          // 状态映射
+          const statusMap: Record<string, string> = {
+            '待派单': 'pending', '待巡检': 'processing', '已完成': 'completed', '已关闭': 'closed'
+          };
+          const priorityMap: Record<string, string> = {
+            '高': 'high', '中': 'medium', '低': 'low'
+          };
+
+          const newOrder = {
+            projectName: row['项目名称'] || row['projectName'] || '',
+            inspectionDate: row['巡检日期'] || row['inspectionDate'] || new Date().toISOString().slice(0, 10),
+            inspector: row['巡检员'] || row['inspector'] || '',
+            inspectorPhone: row['巡检员电话'] || row['inspectorPhone'] || '',
+            weather: row['天气'] || row['weather'] || '晴',
+            inverterNo: row['逆变器编号'] || row['inverterNo'] || '',
+            farmerName: row['农户姓名'] || row['farmerName'] || '',
+            farmerPhone: row['农户电话'] || row['farmerPhone'] || '',
+            address: row['地址'] || row['address'] || '',
+            installedCapacity: row['装机容量'] || row['installedCapacity'] || '',
+            gridConnectionDate: row['并网日期'] || row['gridConnectionDate'] || '',
+            inspections: inspections,
+            photos: [],
+            conclusion: row['结论'] || row['conclusion'] || '',
+            signature: '',
+            status: (statusMap[row['状态'] || row['status']] || 'pending') as 'pending' | 'processing' | 'completed' | 'closed',
+            assignedTo: row['指派给'] || row['assignedTo'] || '',
+            priority: (priorityMap[row['优先级'] || row['priority']] || 'medium') as 'high' | 'medium' | 'low',
+            createdBy: row['创建人'] || row['createdBy'] || 'admin'
+          };
+          await createInspectionOrder(newOrder);
+          successCount++;
+        } catch (e) {
+          console.error('导入单条工单失败:', e);
+          failCount++;
+        }
+      }
+      alert(`导入完成：成功 ${successCount} 条，失败 ${failCount} 条`);
+      setShowImportModal(false);
+      loadOrders();
+    } catch (e) {
+      alert('导入失败：文件解析错误');
+      console.error('导入失败:', e);
+    }
+    setImporting(false);
   };
 
   return (
@@ -194,6 +360,22 @@ export default function AdminOrdersPage() {
                   <option key={area} value={area}>{area}</option>
                 ))}
               </select>
+              {/* 导出按钮 */}
+              <button
+                onClick={handleExportOrders}
+                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg active:bg-emerald-100"
+                title="导出工单"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              {/* 导入按钮 */}
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg active:bg-blue-100"
+                title="导入工单"
+              >
+                <Upload className="w-5 h-5" />
+              </button>
               <button onClick={loadOrders} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg active:bg-slate-200">
                 <RefreshCw className="w-5 h-5" />
               </button>
@@ -502,6 +684,64 @@ export default function AdminOrdersPage() {
                 className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium disabled:opacity-50"
               >
                 确认指派
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导入工单弹窗 */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm">
+            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">导入工单</h3>
+              <button onClick={() => setShowImportModal(false)} className="p-1 hover:bg-slate-100 rounded">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-slate-600 mb-4">
+                请选择要导入的 Excel 文件
+              </p>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer bg-blue-50 hover:bg-blue-100 transition-colors">
+                <Upload className="w-8 h-8 text-blue-500 mb-2" />
+                <span className="text-sm text-blue-600 font-medium">点击选择文件</span>
+                <span className="text-xs text-slate-500 mt-1">支持 .xlsx, .xls 格式</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImportOrders(file);
+                  }}
+                  disabled={importing}
+                />
+              </label>
+              {importing && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="ml-2 text-sm text-slate-600">导入中...</span>
+                </div>
+              )}
+              <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+                <p className="text-xs text-amber-700">
+                  <strong>注意事项：</strong>
+                </p>
+                <ul className="text-xs text-amber-600 mt-1 list-disc list-inside">
+                  <li>导入文件格式为 Excel (.xlsx)</li>
+                  <li>导入的工单将创建为新工单</li>
+                  <li>建议导入前先导出备份</li>
+                </ul>
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-slate-200">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium"
+              >
+                取消
               </button>
             </div>
           </div>

@@ -1,7 +1,8 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { uploadToCloudStorage } from './cloudStorage';
 
-export async function exportOrderToPDF(order: any): Promise<void> {
+export async function exportOrderToPDF(order: any): Promise<{ fileID?: string; tempFileURL?: string; success: boolean }> {
   // 按类别分组巡检项
   const groupedInspections: Record<string, any[]> = {};
   if (order.inspections && order.inspections.length > 0) {
@@ -244,7 +245,26 @@ export async function exportOrderToPDF(order: any): Promise<void> {
     pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, 297));
 
     const fileName = (order.orderNo || '巡检报告') + '_巡检报告.pdf';
-    pdf.save(fileName);
+    const pdfBlob = pdf.output('blob');
+
+    // 尝试上传到云存储
+    const cloudPath = `inspection-reports/${new Date().toISOString().slice(0, 10)}/${fileName}`;
+    const uploadResult = await uploadToCloudStorage(cloudPath, pdfBlob);
+
+    if (uploadResult?.tempFileURL) {
+      // 云存储上传成功，使用云端链接下载
+      const link = document.createElement('a');
+      link.href = uploadResult.tempFileURL;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return { fileID: uploadResult.fileID, tempFileURL: uploadResult.tempFileURL, success: true };
+    } else {
+      // 云存储不可用，回退到本地下载
+      pdf.save(fileName);
+      return { success: true };
+    }
   } finally {
     document.body.removeChild(container);
   }
