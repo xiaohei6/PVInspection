@@ -26,6 +26,7 @@ export interface PhotoAttachment {
   url: string; // Base64 或 URL
   description?: string; // 图片描述
   capturedAt?: string; // 拍摄时间
+  category?: string; // 分类：光伏组件/支架/逆变器/配电箱/接地防雷/采集装置/其他
 }
 
 // 巡检项目

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Camera, X, Check, ChevronRight,
-  AlertTriangle, FileText, MapPin, Send, User, Bell
+  AlertTriangle, FileText, MapPin, Send, User, Bell, Plus,
+  Trash2, Edit2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -64,6 +65,16 @@ export default function WorkOrderFormPage() {
   const [signature, setSignature] = useState('');
   const [activePhotoSlot, setActivePhotoSlot] = useState<string | null>(null);
   const [photoDescription, setPhotoDescription] = useState('');
+
+  // 照片分类
+  const photoCategories = ['光伏组件', '支架', '逆变器', '配电箱', '接地防雷', '采集装置', '其他'];
+  const [activePhotoCategory, setActivePhotoCategory] = useState('光伏组件');
+
+  // 小类增删改状态
+  const [editingItemName, setEditingItemName] = useState<string | null>(null);
+  const [editingItemNewName, setEditingItemNewName] = useState('');
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -208,17 +219,59 @@ export default function WorkOrderFormPage() {
     ));
   };
 
-  const handlePhotoCapture = (photoId: string, file: File) => {
+  // 添加新小类到当前大类
+  const handleAddItem = () => {
+    if (!newItemName.trim()) return;
+    const newItem: InspectionItem = {
+      id: `insp_${Date.now()}`,
+      category: activeCategory,
+      name: newItemName.trim(),
+      result: '正常',
+      description: ''
+    };
+    setInspections(prev => [...prev, newItem]);
+    setNewItemName('');
+    setShowAddItem(false);
+  };
+
+  // 删除当前大类的某个小类
+  const handleDeleteItem = (_itemId: string, itemName: string) => {
+    if (confirm(`确定要删除巡检项"${itemName}"吗？`)) {
+      setInspections(prev => prev.filter(item => !(item.category === activeCategory && item.name === itemName)));
+    }
+  };
+
+  // 开始编辑小类名称
+  const handleStartEditItem = (itemName: string) => {
+    setEditingItemName(itemName);
+    setEditingItemNewName(itemName);
+  };
+
+  // 保存编辑的小类名称
+  const handleSaveEditItem = (oldName: string) => {
+    if (!editingItemNewName.trim()) return;
+    setInspections(prev => prev.map(item =>
+      item.category === activeCategory && item.name === oldName
+        ? { ...item, name: editingItemNewName.trim() }
+        : item
+    ));
+    setEditingItemName(null);
+    setEditingItemNewName('');
+  };
+
+  const handlePhotoCapture = (photoId: string, file: File, category?: string) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const url = e.target?.result as string;
       setPhotos(prev => {
         const existingIndex = prev.findIndex(p => p.id === photoId);
+        const photoCategory = category || activePhotoCategory;
         const newPhoto: PhotoAttachment = {
           id: photoId,
           name: photoConfig.find(p => p.id === photoId)?.name || '照片',
           url,
-          description: photoDescription || ''
+          description: photoDescription || '',
+          category: photoCategory
         };
         if (existingIndex >= 0) {
           const newPhotos = [...prev];
@@ -235,6 +288,26 @@ export default function WorkOrderFormPage() {
 
   const removePhoto = (photoId: string) => {
     setPhotos(prev => prev.filter(p => p.id !== photoId));
+  };
+
+  // 添加自定义照片
+  const addCustomPhoto = (category: string) => {
+    const customId = `custom_${Date.now()}`;
+    const newPhoto: PhotoAttachment = {
+      id: customId,
+      name: '自定义照片',
+      url: '',
+      description: '',
+      category
+    };
+    setPhotos(prev => [...prev, newPhoto]);
+    setActivePhotoSlot(customId);
+  };
+
+  // 删除自定义照片
+  const removeCustomPhoto = (photoId: string) => {
+    setPhotos(prev => prev.filter(p => p.id !== photoId));
+    setActivePhotoSlot(null);
   };
 
   // 管理员保存（创建工单）
@@ -283,6 +356,14 @@ export default function WorkOrderFormPage() {
     const hasRequired = requiredPhotos.every(pid => photos.some(p => p.id === pid));
     if (!hasRequired) {
       alert('请上传所有必填照片');
+      return;
+    }
+
+    // 检查异常项是否有描述
+    const abnormalItems = inspections.filter(i => i.result === '异常');
+    const hasAbnormalDescription = abnormalItems.every(i => i.description && i.description.trim() !== '');
+    if (abnormalItems.length > 0 && !hasAbnormalDescription) {
+      alert('请为所有异常项填写描述说明');
       return;
     }
 
@@ -674,6 +755,43 @@ export default function WorkOrderFormPage() {
 
                 {/* 巡检项列表 */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 divide-y divide-slate-100">
+                  {/* 添加新小类按钮 */}
+                  <div className="p-3 bg-slate-50">
+                    {showAddItem ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          placeholder="输入新巡检项名称"
+                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          autoFocus
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+                        />
+                        <button
+                          onClick={handleAddItem}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+                        >
+                          添加
+                        </button>
+                        <button
+                          onClick={() => { setShowAddItem(false); setNewItemName(''); }}
+                          className="px-3 py-2 bg-slate-200 text-slate-600 rounded-lg text-sm font-medium"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowAddItem(true)}
+                        className="w-full flex items-center justify-center gap-2 py-2 text-blue-600 text-sm font-medium hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        添加巡检项
+                      </button>
+                    )}
+                  </div>
+
                   {(inspectionCategories[activeCategory] || []).map((itemName, index) => {
                     const item = inspections.find(
                       i => i.category === activeCategory && i.name === itemName
@@ -682,58 +800,119 @@ export default function WorkOrderFormPage() {
                     return (
                       <div key={item.id} className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-slate-700">{itemName}</span>
-                          <div className="flex gap-1">
-                            {(['正常', '异常', '待复查'] as InspectionResult[]).map(result => (
+                          {editingItemName === itemName ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <input
+                                type="text"
+                                value={editingItemNewName}
+                                onChange={(e) => setEditingItemNewName(e.target.value)}
+                                className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveEditItem(itemName)}
+                              />
                               <button
-                                key={result}
-                                onClick={() => {
-                                  // 确保巡检项存在
-                                  let existingItem = inspections.find(
-                                    i => i.category === activeCategory && i.name === itemName
-                                  );
-                                  if (!existingItem) {
-                                    const newItem: InspectionItem = {
-                                      id: `insp_${Date.now()}_${index}`,
-                                      category: activeCategory,
-                                      name: itemName,
-                                      result: '正常',
-                                      description: ''
-                                    };
-                                    setInspections(prev => [...prev, newItem]);
-                                    existingItem = newItem;
-                                  }
-                                  updateInspection(existingItem.id, { result });
-                                }}
-                                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                  item.result === result
-                                    ? result === '正常' ? 'bg-emerald-100 text-emerald-700'
-                                      : result === '异常' ? 'bg-red-100 text-red-700'
-                                      : 'bg-amber-100 text-amber-700'
-                                    : 'bg-slate-100 text-slate-500'
-                                }`}
+                                onClick={() => handleSaveEditItem(itemName)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
                               >
-                                {result}
+                                <Check className="w-4 h-4" />
                               </button>
-                            ))}
-                          </div>
+                              <button
+                                onClick={() => { setEditingItemName(null); setEditingItemNewName(''); }}
+                                className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-700">{itemName}</span>
+                                <button
+                                  onClick={() => handleStartEditItem(itemName)}
+                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="编辑名称"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleDeleteItem(item.id, itemName)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="删除此项"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                                {(['正常', '异常', '待复查'] as InspectionResult[]).map(result => (
+                                  <button
+                                    key={result}
+                                    onClick={() => {
+                                      // 确保巡检项存在
+                                      let existingItem = inspections.find(
+                                        i => i.category === activeCategory && i.name === itemName
+                                      );
+                                      if (!existingItem) {
+                                        const newItem: InspectionItem = {
+                                          id: `insp_${Date.now()}_${index}`,
+                                          category: activeCategory,
+                                          name: itemName,
+                                          result: '正常',
+                                          description: ''
+                                        };
+                                        setInspections(prev => [...prev, newItem]);
+                                        existingItem = newItem;
+                                      }
+                                      updateInspection(existingItem.id, { result });
+                                    }}
+                                    className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                                      item.result === result
+                                        ? result === '正常' ? 'bg-emerald-100 text-emerald-700'
+                                          : result === '异常' ? 'bg-red-100 text-red-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                        : 'bg-slate-100 text-slate-500'
+                                    }`}
+                                  >
+                                    {result}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
-                        {item.result === '异常' && (
-                          <textarea
-                            value={item.description || ''}
-                            onChange={(e) => {
-                              let existingItem = inspections.find(
-                                i => i.category === activeCategory && i.name === itemName
-                              );
-                              if (existingItem) {
-                                updateInspection(existingItem.id, { description: e.target.value });
-                              }
-                            }}
-                            placeholder="请描述异常情况..."
-                            rows={2}
-                            className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none resize-none mt-2"
-                          />
-                        )}
+                        <textarea
+                          value={item.description || ''}
+                          onChange={(e) => {
+                            let existingItem = inspections.find(
+                              i => i.category === activeCategory && i.name === itemName
+                            );
+                            if (!existingItem) {
+                              // 如果item不存在，先创建
+                              const newItem: InspectionItem = {
+                                id: `insp_${Date.now()}_${index}`,
+                                category: activeCategory,
+                                name: itemName,
+                                result: item.result as InspectionResult,
+                                description: e.target.value
+                              };
+                              setInspections(prev => [...prev, newItem]);
+                            } else {
+                              updateInspection(existingItem.id, { description: e.target.value });
+                            }
+                          }}
+                          placeholder={
+                            item.result === '异常' ? '请描述异常情况（必填）...' :
+                            item.result === '待复查' ? '请描述待复查原因（选填）...' :
+                            '备注说明（选填）...'
+                          }
+                          rows={2}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm outline-none resize-none mt-2 ${
+                            item.result === '异常'
+                              ? 'border-red-200 focus:ring-2 focus:ring-red-500'
+                              : item.result === '待复查'
+                              ? 'border-amber-200 focus:ring-2 focus:ring-amber-500'
+                              : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                          }`}
+                        />
                       </div>
                     );
                   })}
@@ -749,34 +928,101 @@ export default function WorkOrderFormPage() {
                     <Camera className="w-5 h-5 text-amber-600" />
                     现场照片
                   </h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    {photoConfig.map(photo => {
-                      const existingPhoto = photos.find(p => p.id === photo.id);
 
+                  {/* 照片分类标签 */}
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 mb-4">
+                    {photoCategories.map(cat => {
+                      const catPhotos = photos.filter(p => p.category === cat);
                       return (
+                        <button
+                          key={cat}
+                          onClick={() => setActivePhotoCategory(cat)}
+                          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                            activePhotoCategory === cat
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {cat} ({catPhotos.length})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 当前分类的照片网格 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* 该分类下已配置的照片 */}
+                    {photoConfig
+                      .filter(photo => {
+                        // 映射照片到分类
+                        const photoCategoryMap: Record<string, string> = {
+                          'aerial': '光伏组件',
+                          'overall': '光伏组件',
+                          'inverter': '逆变器',
+                          'distribution': '配电箱',
+                          'meter': '配电箱',
+                          'signature': '其他'
+                        };
+                        return photoCategoryMap[photo.id] === activePhotoCategory;
+                      })
+                      .map(photo => {
+                        const existingPhoto = photos.find(p => p.id === photo.id);
+                        return (
+                          <div
+                            key={photo.id}
+                            className={`relative aspect-square rounded-xl border-2 border-dashed overflow-hidden ${
+                              existingPhoto ? 'border-emerald-400' : 'border-slate-200'
+                            }`}
+                            onClick={() => !existingPhoto && setActivePhotoSlot(photo.id)}
+                          >
+                            {existingPhoto ? (
+                              <>
+                                <img src={existingPhoto.url} alt={existingPhoto.name} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-white text-xs font-medium truncate">{existingPhoto.name}</p>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
+                                  className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                                <div className="absolute top-2 left-2">
+                                  <span className="px-1.5 py-0.5 bg-emerald-500 text-white rounded text-xs">
+                                    <Check className="w-3 h-3 inline" />
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                <Camera className="w-8 h-8 mb-2" />
+                                <p className="text-xs text-center px-2">{photo.name}</p>
+                                {photo.required && <span className="text-red-500 text-xs mt-1">必填</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                    {/* 该分类下的自定义照片 */}
+                    {photos
+                      .filter(p => p.category === activePhotoCategory && p.id.startsWith('custom_'))
+                      .map(photo => (
                         <div
                           key={photo.id}
-                          className={`relative aspect-square rounded-xl border-2 border-dashed overflow-hidden ${
-                            existingPhoto ? 'border-emerald-400' : 'border-slate-200'
-                          }`}
-                          onClick={() => !existingPhoto && setActivePhotoSlot(photo.id)}
+                          className="relative aspect-square rounded-xl border-2 border-dashed border-emerald-400 overflow-hidden"
+                          onClick={() => setActivePhotoSlot(photo.id)}
                         >
-                          {existingPhoto ? (
+                          {photo.url ? (
                             <>
-                              <img
-                                src={existingPhoto.url}
-                                alt={existingPhoto.name}
-                                className="w-full h-full object-cover"
-                              />
+                              <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                               <div className="absolute bottom-2 left-2 right-2">
-                                <p className="text-white text-xs font-medium truncate">{existingPhoto.name}</p>
+                                <p className="text-white text-xs font-medium truncate">{photo.name}</p>
                               </div>
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removePhoto(photo.id);
-                                }}
+                                onClick={(e) => { e.stopPropagation(); removeCustomPhoto(photo.id); }}
                                 className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
                               >
                                 <X className="w-4 h-4" />
@@ -790,15 +1036,20 @@ export default function WorkOrderFormPage() {
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                               <Camera className="w-8 h-8 mb-2" />
-                              <p className="text-xs text-center px-2">{photo.name}</p>
-                              {photo.required && (
-                                <span className="text-red-500 text-xs mt-1">必填</span>
-                              )}
+                              <p className="text-xs text-center px-2">自定义照片</p>
                             </div>
                           )}
                         </div>
-                      );
-                    })}
+                      ))}
+
+                    {/* 添加更多照片按钮 */}
+                    <div
+                      className="relative aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 overflow-hidden flex flex-col items-center justify-center text-blue-400 cursor-pointer hover:bg-blue-100 transition-colors"
+                      onClick={() => addCustomPhoto(activePhotoCategory)}
+                    >
+                      <Plus className="w-8 h-8 mb-2" />
+                      <p className="text-xs text-center px-2">添加更多</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -937,7 +1188,7 @@ export default function WorkOrderFormPage() {
           <div className="bg-white w-full rounded-t-2xl p-4 pb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-slate-800">
-                {photoConfig.find(p => p.id === activePhotoSlot)?.name}
+                {activePhotoSlot.startsWith('custom_') ? '自定义照片' : (photoConfig.find(p => p.id === activePhotoSlot)?.name)}
               </h3>
               <button onClick={() => setActivePhotoSlot(null)} className="p-2 hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-400" />
@@ -962,7 +1213,34 @@ export default function WorkOrderFormPage() {
                 ref={fileInputRef}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) handlePhotoCapture(activePhotoSlot, file);
+                  if (file) {
+                    if (activePhotoSlot.startsWith('custom_')) {
+                      // 自定义照片
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const url = ev.target?.result as string;
+                        setPhotos(prev => {
+                          const existingIndex = prev.findIndex(p => p.id === activePhotoSlot);
+                          if (existingIndex >= 0) {
+                            const newPhotos = [...prev];
+                            newPhotos[existingIndex] = {
+                              ...newPhotos[existingIndex],
+                              url,
+                              name: photoDescription || '自定义照片',
+                              description: photoDescription
+                            };
+                            return newPhotos;
+                          }
+                          return prev;
+                        });
+                        setActivePhotoSlot(null);
+                        setPhotoDescription('');
+                      };
+                      reader.readAsDataURL(file);
+                    } else {
+                      handlePhotoCapture(activePhotoSlot, file);
+                    }
+                  }
                 }}
                 className="hidden"
               />
